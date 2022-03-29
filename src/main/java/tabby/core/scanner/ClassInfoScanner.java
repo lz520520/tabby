@@ -57,7 +57,13 @@ public class ClassInfoScanner {
                 SootClass theClass = Scene.v().loadClassAndSupport(cl);
                 if (!theClass.isPhantom()) {
                     // 这里存在类数量不一致的情况，是因为存在重复的对象
-                    results.put(cl, collector.collect(theClass));
+                    CompletableFuture<ClassReference> c = collector.collect(theClass);
+                    try {
+                        c.get();
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                    results.put(cl, c);
                     theClass.setApplicationClass();
                     if(counter % 10000 == 0){
                         log.info("Collected {} classes.", counter);

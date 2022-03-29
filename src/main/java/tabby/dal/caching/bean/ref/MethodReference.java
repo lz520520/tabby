@@ -150,9 +150,13 @@ public class MethodReference {
                     methodRef.setMethodAnnotationSize(visibilityAnnotationTag.getAnnotations().size());
 
                     for(int i=0; i< visibilityAnnotationTag.getAnnotations().size();i++){
+                        AnnotationTag annotationTag  = visibilityAnnotationTag.getAnnotations().get(i);
+                        if (annotationTag == null) {
+                            continue;
+                        }
                         List<Object> annotation = new ArrayList<>();
                         annotation.add(i); // param position
-                        annotation.add(visibilityAnnotationTag.getAnnotations().get(i).getType().replace("/", ".")); // param type
+                        annotation.add(annotationTag.getType().replace("/", ".")); // param type
                         methodRef.getMethodAnnotation().add(gson.toJson(annotation));
                     }
 
@@ -162,9 +166,18 @@ public class MethodReference {
                     methodRef.setParamAnnotationSize(visibilityParameterAnnotationTag.getVisibilityAnnotations().size());
 
                     for(int i=0; i< visibilityParameterAnnotationTag.getVisibilityAnnotations().size();i++){
+                        VisibilityAnnotationTag visibilityAnnotationTag = visibilityParameterAnnotationTag.getVisibilityAnnotations().get(i);
+                        // 可能出现null导致后面无法调用方法报错异常
+                        if (visibilityAnnotationTag == null) {
+                            continue;
+                        }
+
                         List<Object> annotation = new ArrayList<>();
                         annotation.add(i); // param position
-                        for (AnnotationTag annotationTag: visibilityParameterAnnotationTag.getVisibilityAnnotations().get(i).getAnnotations()) {
+                        for (AnnotationTag annotationTag: visibilityAnnotationTag.getAnnotations()) {
+                            if (annotationTag == null) {
+                                continue;
+                            }
                             annotation.add(annotationTag.getType().replace("/", "."));
                         }
                         methodRef.getParamAnnotation().add(gson.toJson(annotation));

@@ -117,9 +117,13 @@ public class ClassReference {
 //                    classRef.setMethodAnnotationSize(visibilityAnnotationTag.getAnnotations().size());
 
                     for(int i=0; i< visibilityAnnotationTag.getAnnotations().size();i++){
+                        AnnotationTag annotationTag  = visibilityAnnotationTag.getAnnotations().get(i);
+                        if (annotationTag == null) {
+                            continue;
+                        }
                         List<Object> annotation = new ArrayList<>();
                         annotation.add(i); // param position
-                        annotation.add(visibilityAnnotationTag.getAnnotations().get(i).getType().replace("/", ".")); // param type
+                        annotation.add(annotationTag.getType().replace("/", ".")); // param type
                         classRef.getAnnotations().add(GlobalConfiguration.GSON.toJson(annotation));
                     }
 
