@@ -5,6 +5,10 @@ import lombok.Data;
 import org.springframework.data.annotation.Transient;
 import soot.SootClass;
 import soot.SootField;
+import soot.tagkit.AnnotationTag;
+import soot.tagkit.Tag;
+import soot.tagkit.VisibilityAnnotationTag;
+import soot.tagkit.VisibilityParameterAnnotationTag;
 import tabby.config.GlobalConfiguration;
 import tabby.dal.caching.bean.edge.Extend;
 import tabby.dal.caching.bean.edge.Has;
@@ -27,7 +31,7 @@ public class ClassReference {
 
     @Id
     private String id;
-//    @Column(unique = true)
+    //    @Column(unique = true)
     private String name;
     private String superClass;
 
@@ -37,6 +41,8 @@ public class ClassReference {
     private boolean hasInterfaces = false;
     private boolean isInitialed = false;
     private boolean isSerializable = false;
+    private boolean hasAnnotations = false;
+
     /**
      * [[name, modifiers, type],...]
      */
@@ -47,6 +53,10 @@ public class ClassReference {
     @Column(columnDefinition = "TEXT")
     @Convert(converter = List2JsonStringConverter.class)
     private List<String> interfaces = new ArrayList<>();
+
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = Set2JsonStringConverter.class)
+    private Set<String> annotations = new HashSet<>();
 
     // neo4j relationships
     /**
@@ -97,6 +107,26 @@ public class ClassReference {
                 classRef.getFields().add(GlobalConfiguration.GSON.toJson(fieldInfo));
             }
         }
+
+        // 提取类注解
+        if (cls.getTags().size() > 0) {
+            for (Tag tag: cls.getTags()) {
+                if (tag instanceof VisibilityAnnotationTag) {
+                    VisibilityAnnotationTag visibilityAnnotationTag = ((VisibilityAnnotationTag) tag);
+                    classRef.setHasAnnotations(true);
+//                    classRef.setMethodAnnotationSize(visibilityAnnotationTag.getAnnotations().size());
+
+                    for(int i=0; i< visibilityAnnotationTag.getAnnotations().size();i++){
+                        List<Object> annotation = new ArrayList<>();
+                        annotation.add(i); // param position
+                        annotation.add(visibilityAnnotationTag.getAnnotations().get(i).getType().replace("/", ".")); // param type
+                        classRef.getAnnotations().add(GlobalConfiguration.GSON.toJson(annotation));
+                    }
+
+                }
+            }
+        }
+
         // 提取父类信息
         if(cls.hasSuperclass() && !cls.getSuperclass().getName().equals("java.lang.Object")){
             // 剔除Object类的继承关系，节省继承边数量

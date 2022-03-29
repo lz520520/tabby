@@ -7,6 +7,10 @@ import lombok.extern.slf4j.Slf4j;
 import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
+import soot.tagkit.AnnotationTag;
+import soot.tagkit.Tag;
+import soot.tagkit.VisibilityAnnotationTag;
+import soot.tagkit.VisibilityParameterAnnotationTag;
 import tabby.dal.caching.bean.edge.Alias;
 import tabby.dal.caching.bean.edge.Call;
 import tabby.dal.caching.converter.ListInteger2JsonStringConverter;
@@ -41,11 +45,22 @@ public class MethodReference {
     private int modifiers;
     private String classname;
     private int parameterSize;
+    private int methodAnnotationSize;
+    private int paramAnnotationSize;
     private String vul;
 
     @Column(columnDefinition = "TEXT")
     @Convert(converter = Set2JsonStringConverter.class)
     private Set<String> parameters = new HashSet<>();
+
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = Set2JsonStringConverter.class)
+    private Set<String> methodAnnotation = new HashSet<>();
+
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = Set2JsonStringConverter.class)
+    private Set<String> paramAnnotation = new HashSet<>();
+
 
     private boolean isSink = false;
     private boolean isSource = false;
@@ -56,6 +71,8 @@ public class MethodReference {
     private boolean actionInitialed = false;
     private boolean isIgnore = false;
     private boolean isSerializable = false;
+    private boolean hasMethodAnnotations = false;
+    private boolean hasParamAnnotations = false;
     /**
      * 污染传递点，主要标记2种类型，this和param
      * 其他函数可以依靠relatedPosition，来判断当前位置是否是通路
@@ -109,14 +126,51 @@ public class MethodReference {
         methodRef.setStatic(method.isStatic());
         methodRef.setReturnType(method.getReturnType().toString());
         Gson gson = new Gson();
+//        VisibilityAnnotationTag visibilityAnnotationTag = null;
+//        VisibilityParameterAnnotationTag visibilityParameterAnnotationTag = null;
+//        if (method.getTags())
+
         if(method.getParameterCount() > 0){
             methodRef.setHasParameters(true);
             methodRef.setParameterSize(method.getParameterCount());
+
             for(int i=0; i<method.getParameterCount();i++){
                 List<Object> param = new ArrayList<>();
                 param.add(i); // param position
                 param.add(method.getParameterType(i).toString()); // param type
                 methodRef.getParameters().add(gson.toJson(param));
+            }
+        }
+        // 注解解析
+        if(method.getTags().size() > 0){
+            for (Tag tag: method.getTags()) {
+                if (tag instanceof VisibilityAnnotationTag) {
+                    VisibilityAnnotationTag visibilityAnnotationTag = ((VisibilityAnnotationTag) tag);
+                    methodRef.setHasMethodAnnotations(true);
+                    methodRef.setMethodAnnotationSize(visibilityAnnotationTag.getAnnotations().size());
+
+                    for(int i=0; i< visibilityAnnotationTag.getAnnotations().size();i++){
+                        List<Object> annotation = new ArrayList<>();
+                        annotation.add(i); // param position
+                        annotation.add(visibilityAnnotationTag.getAnnotations().get(i).getType().replace("/", ".")); // param type
+                        methodRef.getMethodAnnotation().add(gson.toJson(annotation));
+                    }
+
+                } else if (tag instanceof VisibilityParameterAnnotationTag) {
+                    VisibilityParameterAnnotationTag visibilityParameterAnnotationTag = ((VisibilityParameterAnnotationTag) tag);
+                    methodRef.setHasParamAnnotations(true);
+                    methodRef.setParamAnnotationSize(visibilityParameterAnnotationTag.getVisibilityAnnotations().size());
+
+                    for(int i=0; i< visibilityParameterAnnotationTag.getVisibilityAnnotations().size();i++){
+                        List<Object> annotation = new ArrayList<>();
+                        annotation.add(i); // param position
+                        for (AnnotationTag annotationTag: visibilityParameterAnnotationTag.getVisibilityAnnotations().get(i).getAnnotations()) {
+                            annotation.add(annotationTag.getType().replace("/", "."));
+                        }
+                        methodRef.getParamAnnotation().add(gson.toJson(annotation));
+                    }
+
+                }
             }
         }
         return methodRef;
