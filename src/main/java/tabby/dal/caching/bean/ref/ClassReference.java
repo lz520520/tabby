@@ -3,6 +3,7 @@ package tabby.dal.caching.bean.ref;
 import com.google.common.hash.Hashing;
 import lombok.Data;
 import org.springframework.data.annotation.Transient;
+import soot.Modifier;
 import soot.SootClass;
 import soot.SootField;
 import soot.tagkit.AnnotationTag;
@@ -14,6 +15,7 @@ import tabby.dal.caching.bean.edge.Extend;
 import tabby.dal.caching.bean.edge.Has;
 import tabby.dal.caching.bean.edge.Interfaces;
 import tabby.dal.caching.converter.List2JsonStringConverter;
+import tabby.dal.caching.converter.Set2JsonStringConverter;
 import tabby.util.SemanticHelper;
 
 import javax.persistence.*;
@@ -54,9 +56,9 @@ public class ClassReference {
      * 超长的字段会导致csv导入neo4j失败
      * 所以直接剔除
      */
-//    @Column(columnDefinition = "TEXT")
-//    @Convert(converter = Set2JsonStringConverter.class)
-//    private Set<String> fields = new HashSet<>();
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = Set2JsonStringConverter.class)
+    private Set<String> fields = new HashSet<>();
 
     @Column(columnDefinition = "TEXT")
     @Convert(converter = List2JsonStringConverter.class)
@@ -97,7 +99,7 @@ public class ClassReference {
         classRef.setId(id);
         classRef.setName(name);
         classRef.setInterfaces(new ArrayList<>());
-//        classRef.setFields(new HashSet<>());
+        classRef.setFields(new HashSet<>());
         return classRef;
     }
 
@@ -106,16 +108,16 @@ public class ClassReference {
         classRef.setInterface(cls.isInterface());
         classRef.setHasDefaultConstructor(SemanticHelper.hasDefaultConstructor(cls));
 
-        // 提取类属性信息 没用到 剔除
-//        if(cls.getFieldCount() > 0){
-//            for (SootField field : cls.getFields()) {
-//                List<String> fieldInfo = new ArrayList<>();
-//                fieldInfo.add(field.getName());
-//                fieldInfo.add(Modifier.toString(field.getModifiers()));
-//                fieldInfo.add(field.getType().toString());
-//                classRef.getFields().add(GlobalConfiguration.GSON.toJson(fieldInfo));
-//            }
-//        }
+//         提取类属性信息
+        if(cls.getFieldCount() > 0){
+            for (SootField field : cls.getFields()) {
+                List<String> fieldInfo = new ArrayList<>();
+                fieldInfo.add(field.getName());
+                fieldInfo.add(Modifier.toString(field.getModifiers()));
+                fieldInfo.add(field.getType().toString());
+                classRef.getFields().add(GlobalConfiguration.GSON.toJson(fieldInfo));
+            }
+        }
 
         // 提取类注解
         if (cls.getTags().size() > 0) {

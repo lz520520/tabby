@@ -17,6 +17,7 @@ import tabby.dal.caching.bean.edge.Alias;
 import tabby.dal.caching.bean.edge.Call;
 import tabby.dal.caching.converter.ListInteger2JsonStringConverter;
 import tabby.dal.caching.converter.Map2JsonStringConverter;
+import tabby.dal.caching.converter.Set2JsonStringConverter;
 import tabby.util.SemanticHelper;
 
 import javax.persistence.*;

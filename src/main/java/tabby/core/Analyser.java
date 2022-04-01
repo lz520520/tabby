@@ -45,6 +45,8 @@ public class Analyser {
     @Autowired
     private RulesContainer rulesContainer;
 
+    private boolean isFullCG = false;
+
     public void run(Properties props) throws IOException {
 
         if("true".equals(props.getProperty(ArgumentEnum.BUILD_ENABLE.toString(), "false"))){
