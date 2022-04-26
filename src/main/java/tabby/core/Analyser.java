@@ -49,6 +49,17 @@ public class Analyser {
 
     public void run(Properties props) throws IOException {
 
+        // 提取endpoint
+        if ("true".equals(props.getProperty(ArgumentEnum.ENDPOINT_ENABLE.toString(), "false"))) {
+            log.info("Extract endpoint...");
+            String target = props.getProperty(ArgumentEnum.TARGET.toString());
+            boolean checkFatJar = "true".equals(props.getProperty(ArgumentEnum.CHECK_FAT_JAR.toString(), "false"));
+
+            Map<String, String> targets = FileUtils.getTargetDirectoryJarFiles(target, checkFatJar);
+            runSootEndpointAnalysis(targets);
+            return;
+        }
+
         if("true".equals(props.getProperty(ArgumentEnum.BUILD_ENABLE.toString(), "false"))){
             Map<String, String> dependencies = getJdkDependencies(
                     props.getProperty(ArgumentEnum.WITH_ALL_JDK.toString(), "false"));
@@ -88,7 +99,22 @@ public class Analyser {
             save();
         }
     }
+    public void runSootEndpointAnalysis(Map<String, String> targets) {
+        SootConfiguration.initSootOption();
+        long start = System.nanoTime();
+        // get target filepath
+        List<String> realTargets = getTargets(targets);
+        if(realTargets.isEmpty()){
+            log.info("Nothing to analysis!");
+            return;
+        }
+        Main.v().autoSetOptions();
+        log.info("Target {}", realTargets.size());
+        classInfoScanner.runEndpoint(realTargets);
+        log.info("Cost {} seconds"
+                , TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start));
 
+    }
     public void runSootAnalysis(Map<String, String> targets, List<String> classpaths){
         try{
             SootConfiguration.initSootOption();

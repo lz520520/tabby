@@ -8,6 +8,7 @@ import tabby.config.GlobalConfiguration;
 import java.io.*;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.jar.JarEntry;
@@ -176,7 +177,46 @@ public class FileUtils {
         File file = new File(path);
         return file.exists();
     }
+    
+    public static boolean CopyClassToPath(String outpath, HashMap<String, ArrayList<String>> map) {
+//        createDirectory(outpath);
+        JarFile jarFile = null;
+        try {
+            for (Map.Entry<String,ArrayList<String>> entry : map.entrySet()) {
+                File path = new File(entry.getKey());
+                // jar包和class读取
+                if (path.isFile() &&  entry.getKey().endsWith(".jar")) {
+                    jarFile = new JarFile(entry.getKey());
+                    for(String classPath : entry.getValue()) {
+                        classPath = classPath.replace(".", "/") + ".class";
+                        InputStream inputStream = jarFile.getInputStream(jarFile.getJarEntry(classPath));
 
+                        File newFile = new File(outpath, classPath);
+                        if (!newFile.exists()) {
+                            newFile.getParentFile().mkdirs();
+                        }
+                        copy(inputStream, new FileOutputStream(newFile));
+                    }
+
+                } else if (path.isDirectory()){
+                    for (String classPath: entry.getValue()) {
+                        classPath = classPath.replace(".", "/") + ".class";
+
+                        File newFile = new File(outpath, classPath);
+                        if (!newFile.exists()) {
+                            newFile.getParentFile().mkdirs();
+                        }
+                        copy(new FileInputStream(new File(path, classPath)), new FileOutputStream(newFile));
+                    }
+
+                }
+            }
+        }catch (Exception e) {
+            return  false;
+        }
+
+        return true;
+    }
     /**
      * 获取json格式的文件，并解析出具体的对象
      * 如果文件不存在，则返回null

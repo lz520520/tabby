@@ -43,6 +43,7 @@ public class App {
             props.setProperty(ArgumentEnum.WITH_ALL_JDK.toString(), "true");
         }
 
+
         GlobalConfiguration.DEBUG = "true".equals(props.getProperty(ArgumentEnum.SET_DEBUG_ENABLE.toString(), "false"));
         GlobalConfiguration.IS_FULL_CALL_GRAPH_CONSTRUCT = "true".equals(props.getProperty(ArgumentEnum.IS_FULL_CALL_GRAPH_CREATE.toString(), "false"));
 

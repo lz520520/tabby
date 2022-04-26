@@ -5,6 +5,8 @@ package tabby.util;
  * @since 2021/8/31
  */
 public enum ArgumentEnum {
+    ENDPOINT_ENABLE("tabby.endpoint.enable"),
+
     IS_JDK_PROCESS("tabby.build.isJDKProcess"),
     WITH_ALL_JDK("tabby.build.withAllJDK"),
     EXCLUDE_JDK("tabby.build.excludeJDK"),

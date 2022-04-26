@@ -13,10 +13,14 @@ import tabby.dal.caching.bean.edge.Has;
 import tabby.dal.caching.bean.edge.Interfaces;
 import tabby.dal.caching.bean.ref.ClassReference;
 import tabby.dal.caching.bean.ref.MethodReference;
+import tabby.util.FileUtils;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+
+import static tabby.core.collector.ClassInfoCollector.getAllFatherNodes;
+import static tabby.core.collector.ClassInfoCollector.isEndpoint;
 
 /**
  * 处理jdk相关类的信息抽取
@@ -43,6 +47,62 @@ public class ClassInfoScanner {
         // 单线程提取关联信息
         buildClassEdges(runtimeClasses);
         save();
+    }
+
+    public void runEndpoint(List<String> paths) {
+        log.info("Start to collect {} targets' class information.", paths.size());
+        ArrayList<String> endPointList = new ArrayList<>();
+        HashMap<String, ArrayList<String>> endPointMap = new HashMap();
+        int counter = 0;
+        int endpointCount = 0;
+        for (final String path : paths) {
+            for (String cl : SourceLocator.v().getClassesUnder(path)) {
+                try {
+                    SootClass theClass = Scene.v().loadClassAndSupport(cl);
+                    if (!theClass.isPhantom()) {
+                        // 这里存在类数量不一致的情况，是因为存在重复的对象
+                        ClassReference classRef = ClassReference.newInstance(theClass);
+                        Set<String> relatedClassnames = getAllFatherNodes(theClass);
+                        classRef.setSerializable(relatedClassnames.contains("java.io.Serializable"));
+                        classRef.setStrutsAction(relatedClassnames.contains("com.opensymphony.xwork2.ActionSupport")
+                                || relatedClassnames.contains("com.opensymphony.xwork2.Action"));
+                        // 提取类函数信息
+                        if(theClass.getMethodCount() > 0){
+                            for (SootMethod method : theClass.getMethods()) {
+                                // !!!!!!!核心规则
+                                if (classRef.isStrutsAction() || isEndpoint(method, relatedClassnames)) {
+                                    endPointList.add(cl);
+                                    ArrayList<String> list;
+                                    if (endPointMap.get(path) == null) {
+                                        list = new ArrayList<String>();
+                                    } else {
+                                        list = endPointMap.get(path);
+                                    }
+                                    list.add(cl);
+                                    endPointMap.put(path, list);
+                                    endpointCount++;
+                                    break;
+                                }
+                            }
+                        }
+
+                        theClass.setApplicationClass();
+                        if(counter % 10000 == 0){
+                            log.info("Collected {} classes.", counter);
+                        }
+                        counter++;
+                    }
+                }catch (Exception e){
+                    log.error("Load Error: " + e.getMessage());
+//                    e.printStackTrace();
+                }
+            }
+        }
+        log.info("Collected {} classes.", counter);
+        log.info("Collected {} Endpoints.", endpointCount);
+        FileUtils.CopyClassToPath("endpoint", endPointMap);
+        log.info("Copy  endpoints to directory \"endpoint\" over.");
+
     }
 
     public Map<String, CompletableFuture<ClassReference>> loadAndExtract(List<String> targets){
